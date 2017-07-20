@@ -123,34 +123,34 @@ class openrisc_translator_arm:
                     ea += 8
                 else:
                     print ("Warning: not supported data type at %0"+str(self.xlen * 2)+"X") % (ea)
-                    curline += "  DCB %Xh\n" % (Byte(ea))
+                    curline += "  DCB 0x%X\n" % (Byte(ea))
                     ea += 1
             else:
                 if isByte(curflag):
-                    curline += "  DCB %Xh\n" % (Byte(ea))
+                    curline += "  DCB 0x%X\n" % (Byte(ea))
                     ea += 1
                 elif isWord(curflag):
-                    curline += "  DCW %Xh\n" % (Word(ea))
+                    curline += "  DCW 0x%X\n" % (Word(ea))
                     ea += 2
                 elif isDwrd(curflag):
-                    curline += "  DCD %Xh\n" % (Dword(ea))
+                    curline += "  DCD 0x%X\n" % (Dword(ea))
                     ea += 4
                 elif isQwrd(curflag):
-                    curline += "  DCQ %Xh\n" % (Qword(ea))
+                    curline += "  DCQ 0x%X\n" % (Qword(ea))
                     ea += 8
                 elif isOwrd(curflag):
                     for i in range(ea, ea + 16):
-                        curline += "  DCB %Xh\n" % (Byte(i))
+                        curline += "  DCB 0x%X\n" % (Byte(i))
                     ea += 16
                 elif isYwrd(curflag):
                     for i in range(ea, ea + 32):
-                        curline += "  DCB %Xh\n" % (Byte(i))
+                        curline += "  DCB 0x%X\n" % (Byte(i))
                     ea += 32
                 else:
-                    curline += "  DCB %Xh\n" % (Byte(ea))
+                    curline += "  DCB 0x%X\n" % (Byte(ea))
                     ea += 1
         else:
-            curline += "  DCB %Xh\n" % (Byte(ea))
+            curline += "  DCB 0x%X\n" % (Byte(ea))
             ea += 1
         self.out(curline)
         return ea - oriea
