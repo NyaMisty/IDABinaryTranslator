@@ -401,25 +401,37 @@ class openrisc_translator_arm:
         if cmd[0].reg == 0:
             self.out("MOV %s, 0" % (self.temp_register_addr))
             rd = self.temp_register_addr
+            rs1 = self.premap_registers(cmd[1].reg)
         elif cmd[1].reg == 0:
             self.out("MOV %s, 0" % (self.temp_register_addr))
+            rd = self.premap_registers(cmd[0].reg)
             rs1 = self.temp_register_addr
         else:
             rd = self.premap_registers(cmd[0].reg)
             rs1 = self.premap_registers(cmd[1].reg)
         self.out("STRB %s, [%s, %X]" % (rd,rs1,cmd[1].addr))
     def translator_sh(self, ea, cmd):
-        if cmd[1].reg == 0:
-            self.out("MOV %s, 0" % (self.temp_register))
-            rs1 = self.temp_register
+        if cmd[0].reg == 0:
+            self.out("MOV %s, 0" % (self.temp_register_addr))
+            rd = self.temp_register_addr
+            rs1 = self.premap_registers(cmd[1].reg)
+        elif cmd[1].reg == 0:
+            self.out("MOV %s, 0" % (self.temp_register_addr))
+            rd = self.premap_registers(cmd[0].reg)
+            rs1 = self.temp_register_addr
         else:
             rd = self.premap_registers(cmd[0].reg)
             rs1 = self.premap_registers(cmd[1].reg)
         self.out("STRH %s, [%s, %X]" % (rd,rs1,cmd[1].addr))
     def translator_sw(self, ea, cmd):
-        if cmd[1].reg == 0:
-            self.out("MOV %s, 0" % (self.temp_register))
-            rs1 = self.temp_register
+        if cmd[0].reg == 0:
+            self.out("MOV %s, 0" % (self.temp_register_addr))
+            rd = self.temp_register_addr
+            rs1 = self.premap_registers(cmd[1].reg)
+        elif cmd[1].reg == 0:
+            self.out("MOV %s, 0" % (self.temp_register_addr))
+            rd = self.premap_registers(cmd[0].reg)
+            rs1 = self.temp_register_addr
         else:
             rd = self.premap_registers(cmd[0].reg)
             rs1 = self.premap_registers(cmd[1].reg)
