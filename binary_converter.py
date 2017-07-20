@@ -39,7 +39,7 @@ class openrisc_translator_arm:
             segHeader += "CODE, "
         else:
             segHeader += "DATA, "
-        if isLoaded(ea):
+        if not isLoaded(ea):
             segHeader += "NOINIT, "
         if attr & SEGPERM_READ and attr & SEGPERM_WRITE:
             segHeader += "READWRITE"
@@ -180,6 +180,8 @@ class openrisc_translator_arm:
                     curline += Name(ea)
                 else:
                     curline += "loc_%016X" % (ea)
+                curline += ":"
+                self.out(curline)
                 ########here!! dispatch the translator!!!
                 mnem = self.cleanMnem(mnem)
                 try:
@@ -253,7 +255,7 @@ class openrisc_translator_arm:
         self.out("LDR %s,=0x%X" % (rd,cmd[1].value << 12 & 0xfffff))
     def translator_auipc(self,ea,cmd):
         rd = self.premap_registers(cmd[0].reg)
-        self.out("LDR %s, =%X" % (rd, ea + cmd[1].value))
+        self.out("LDR %s, =0x%X" % (rd, ea + cmd[1].value))
         self.postmap_registers(cmd[0].reg)
         pass
     def translator_jal(self,ea,cmd):
@@ -375,27 +377,27 @@ class openrisc_translator_arm:
     def translator_lb(self, ea, cmd):
         rd = self.premap_registers(cmd[0].reg)
         rs1 = self.premap_registers(cmd[1].reg)
-        self.out("LDRSB %s, [%s, %X]" % (rd,rs1,cmd[1].addr))
+        self.out("LDRSB %s, [%s, 0x%X]" % (rd,rs1,cmd[1].addr))
         self.postmap_registers(cmd[0].reg)
     def translator_lh(self, ea, cmd):
         rd = self.premap_registers(cmd[0].reg)
         rs1 = self.premap_registers(cmd[1].reg)
-        self.out("LDRSH %s, [%s, %X]" % (rd,rs1,cmd[1].addr))
+        self.out("LDRSH %s, [%s, 0x%X]" % (rd,rs1,cmd[1].addr))
         self.postmap_registers(cmd[0].reg)
     def translator_lw(self, ea, cmd):
         rd = self.premap_registers(cmd[0].reg)
         rs1 = self.premap_registers(cmd[1].reg)
-        self.out("LDR %s, [%s, %X]" % (rd,rs1,cmd[1].addr))
+        self.out("LDR %s, [%s, 0x%X]" % (rd,rs1,cmd[1].addr))
         self.postmap_registers(cmd[0].reg)
     def translator_lbu(self, ea, cmd):
         rd = self.premap_registers(cmd[0].reg)
         rs1 = self.premap_registers(cmd[1].reg)
-        self.out("LDRB %s, [%s, %X]" % (rd,rs1,cmd[1].addr))
+        self.out("LDRB %s, [%s, 0x%X]" % (rd,rs1,cmd[1].addr))
         self.postmap_registers(cmd[0].reg)
     def translator_lhu(self, ea, cmd):
         rd = self.premap_registers(cmd[0].reg)
         rs1 = self.premap_registers(cmd[1].reg)
-        self.out("LDRH %s, [%s, %X]" % (rd,rs1,cmd[1].addr))
+        self.out("LDRH %s, [%s, 0x%X]" % (rd,rs1,cmd[1].addr))
         self.postmap_registers(cmd[0].reg)
     def translator_sb(self, ea, cmd):
         if cmd[0].reg == 0:
@@ -409,7 +411,6 @@ class openrisc_translator_arm:
         else:
             rd = self.premap_registers(cmd[0].reg)
             rs1 = self.premap_registers(cmd[1].reg)
-        self.out("STRB %s, [%s, %X]" % (rd,rs1,cmd[1].addr))
     def translator_sh(self, ea, cmd):
         if cmd[0].reg == 0:
             self.out("MOV %s, 0" % (self.temp_register_addr))
@@ -422,7 +423,7 @@ class openrisc_translator_arm:
         else:
             rd = self.premap_registers(cmd[0].reg)
             rs1 = self.premap_registers(cmd[1].reg)
-        self.out("STRH %s, [%s, %X]" % (rd,rs1,cmd[1].addr))
+        self.out("STRH %s, [%s, 0x%X]" % (rd,rs1,cmd[1].addr))
     def translator_sw(self, ea, cmd):
         if cmd[0].reg == 0:
             self.out("MOV %s, 0" % (self.temp_register_addr))
@@ -435,60 +436,60 @@ class openrisc_translator_arm:
         else:
             rd = self.premap_registers(cmd[0].reg)
             rs1 = self.premap_registers(cmd[1].reg)
-        self.out("STR %s, [%s, %X]" % (rd,rs1,cmd[1].addr))
+        self.out("STR %s, [%s, 0x%X]" % (rd,rs1,cmd[1].addr))
     def translator_addi(self, ea, cmd):
         rd = self.premap_registers(cmd[0].reg)
         if cmd[1].reg == 0:
-            self.out("MOV %s, %X" % (rd,cmd[2].value))
+            self.out("MOV %s, 0x%X" % (rd,cmd[2].value))
         else:
             rs1 = self.premap_registers(cmd[1].reg)
             if cmd[2].value > 0:
-                self.out("ADD %s, %s, %X" % (rd, rs1, cmd[2].value))
+                self.out("ADD %s, %s, 0x%X" % (rd, rs1, cmd[2].value))
             else:
-                self.out("SUB %s, %s, %X" % (rd, rs1, -cmd[2].value))
+                self.out("SUB %s, %s, 0x%X" % (rd, rs1, -cmd[2].value))
         self.postmap_registers(cmd[0].reg)
     def translator_slti(self, ea, cmd):
         rd = self.premap_registers(cmd[0].reg)
         rs1 = self.premap_registers(cmd[1].reg)
         self.out("MOV %s, 0" % (rd))
-        self.out("CMP %s, %X" % (rs1, cmd[2].value))
+        self.out("CMP %s, 0x%X" % (rs1, cmd[2].value))
         self.out("MOVLT %s, 1" % (rd))
         self.postmap_registers(cmd[0].reg)
     def translator_sltiu(self, ea, cmd):
         rd = self.premap_registers(cmd[0].reg)
         rs1 = self.premap_registers(cmd[1].reg)
         self.out("MOV %s, 0" % (rd))
-        self.out("CMP %s, %X" % (rs1, cmd[2].value))
+        self.out("CMP %s, 0x%X" % (rs1, cmd[2].value))
         self.out("MOVLO %s, 1" % (rd))
         self.postmap_registers(cmd[0].reg)
     def translator_xori(self, ea, cmd):
         rd = self.premap_registers(cmd[0].reg)
         rs1 = self.premap_registers(cmd[1].reg)
-        self.out("EOR %s, %s, %X" % (rd, rs1, cmd[2].value))
+        self.out("EOR %s, %s, 0x%X" % (rd, rs1, cmd[2].value))
         self.postmap_registers(cmd[0].reg)
     def translator_ori(self, ea, cmd):
         rd = self.premap_registers(cmd[0].reg)
         rs1 = self.premap_registers(cmd[1].reg)
-        self.out("OR %s, %s, %X" % (rd, rs1, cmd[2].value))
+        self.out("OR %s, %s, 0x%X" % (rd, rs1, cmd[2].value))
         self.postmap_registers(cmd[0].reg)
     def translator_andi(self, ea, cmd):
         rd = self.premap_registers(cmd[0].reg)
         rs1 = self.premap_registers(cmd[1].reg)
-        self.out("AND %s, %s, %X" % (rd, rs1, cmd[2].value))
+        self.out("AND %s, %s, 0x%X" % (rd, rs1, cmd[2].value))
         self.postmap_registers(cmd[0].reg)
     def translator_slli(self, ea, cmd):
         rd = self.premap_registers(cmd[0].reg)
         rs1 = self.premap_registers(cmd[1].reg)
-        self.out("LSL %s, %s, %X" % (rd, rs1, cmd[2].value))
+        self.out("LSL %s, %s, 0x%X" % (rd, rs1, cmd[2].value))
         self.postmap_registers(cmd[0].reg)
     def translator_srli(self, ea, cmd):
         rd = self.premap_registers(cmd[0].reg)
         rs1 = self.premap_registers(cmd[1].reg)
-        self.out("LOR %s, %s, %X" % (rd, rs1, cmd[2].value))
+        self.out("LOR %s, %s, 0x%X" % (rd, rs1, cmd[2].value))
     def translator_srai(self, ea, cmd):
         rd = self.premap_registers(cmd[0].reg)
         rs1 = self.premap_registers(cmd[1].reg)
-        self.out("ASR %s, %s, %X" % (rd, rs1, cmd[2].value))
+        self.out("ASR %s, %s, 0x%X" % (rd, rs1, cmd[2].value))
         self.postmap_registers(cmd[0].reg)
     def translator_add(self, ea, cmd):
         rd = self.premap_registers(cmd[0].reg)
