@@ -17,6 +17,7 @@ class UnsupportedCornerCase(Exception):
 class openrisc_translator_arm:
     f = None
     isCurInData = False
+    xlen = 4
     def __init__(self,name):
         self.f = open(name,"w")
 
@@ -47,7 +48,7 @@ class openrisc_translator_arm:
             segHeader += "READONLY"
         else:
             print "Warning: seg at 0x%X named %s does not have a read permission, please check!" % (ea, SegName(ea))
-        segHeader += "              ; Segment at %016X %s" % (ea, SegName(ea))
+        segHeader += ("              ; Segment at %0"+ str(self.xlen * 2) +"X %s") % (ea, SegName(ea))
         self.out(segHeader)
 
     def calcOffsetTargetAndBase(self, ea, value):
@@ -79,7 +80,7 @@ class openrisc_translator_arm:
             """if hasName(base):
                 expression += Name(base)
             else:
-                expression += "loc_%016X" % (base)"""
+                expression += ("loc_%0"+ str(self.xlen * 2) +"X") % (base)"""
             expression += "0x%X" % (base)
         return expression
 
@@ -121,7 +122,7 @@ class openrisc_translator_arm:
                     curline += Name(target)
                     ea += 8
                 else:
-                    print "Warning: not supported data type at %016X" % (ea)
+                    print ("Warning: not supported data type at %0"+str(self.xlen * 2)+"X") % (ea)
                     curline += "  DCB %Xh\n" % (Byte(ea))
                     ea += 1
             else:
@@ -178,23 +179,28 @@ class openrisc_translator_arm:
                 mnem = GetMnem(ea)
                 if hasName(GetFlags(ea)):
                     curline += Name(ea)
+                    curline += ":"
+                    self.out(curline)
                 else:
-                    curline += "loc_%016X" % (ea)
-                curline += ":"
-                self.out(curline)
+                    #curline += ("loc_%0+"str(self.xlen * 2)"+X") % (ea)
+                    #curline += ":"
+                    #self.out(curline)
+                    pass
+
+
                 ########here!! dispatch the translator!!!
                 mnem = self.cleanMnem(mnem)
                 try:
                     getattr(self, 'translator_%s' % mnem)(ea,cmd)
                 except AttributeError as e:
-                    print "%016X: Warning: translator of %s instruction is not implemented! " % (ea,mnem)
+                    print ("%0"+str(self.xlen * 2)+"X: Warning: translator of %s instruction is not implemented! ") % (ea,mnem)
                     traceback.print_exc()
                 except Exception as e:
                     self.out("NOP")
                     self.out("NOP")
                     self.out("NOP")
                     self.out("NOP")
-                    print "%016X: %s" % (ea,repr(e))
+                    print ("%0"+str(self.xlen * 2)+"X: %s") % (ea,repr(e))
                 lastLiteralPool += 12
                 ea += length
                 continue
@@ -210,7 +216,33 @@ class openrisc_translator_arm:
         oriea = ea
         while ea < SegEnd(oriea):
             ea += self.doDataTranslation(ea)
-
+    def doExternSegTranslation(self,ea):
+        oriea = ea
+        while ea < SegEnd(oriea):
+            curline = "     EXTERN "
+            curline += Name(ea)
+            curline += " WEAK"
+            self.out(curline)
+            ea += self.xlen
+    def makeGlobalSegment(self):
+        segHeader = "   AREA     "
+        segHeader += ".global"
+        segHeader += ", "
+        segHeader += "DATA, "
+        segHeader += "NOINIT, "
+        segHeader += "READWRITE"
+        segHeader += ("              ; Global segment")
+        self.out(segHeader)
+        for idx,name in enumerate(self.reg_names_target):
+            curline = ""
+            if name == self.temp_register:
+                curline += "ori_register_%s" % (self.reg_names_origin[idx])
+                curline += "SPACE %d" % (self.xlen)
+            elif name == self.temp_register_gp:
+                curline += "globalpointer_%s" % (self.reg_names_origin[idx])
+                curline += "SPACE %d" % (self.xlen)
+            self.out(curline)
+        self.out("  END")
 
     reg_names_origin = [
         "zero", "ra", "sp", "gp", "tp",
@@ -617,10 +649,14 @@ def main():
     for segea in Segments():
         attr = GetSegmentAttr(segea,SEGATTR_PERM)
         translator.printSegHeader(segea,attr)
-        if attr & SEGPERM_EXEC:
+        if SegName(segea) == ".plt":
+            continue
+        elif SegName(segea) == "extern":
+            translator.doExternSegTranslation(segea)
+        elif attr & SEGPERM_EXEC:
             translator.doCodeSegTranslation(segea)
         else:
             translator.doOtherSegTranslation(segea)
         translator.printAsmFooter()
-
+    translator.makeGlobalSegment()
 main()
