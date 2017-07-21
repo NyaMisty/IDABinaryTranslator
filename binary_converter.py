@@ -207,8 +207,8 @@ class openrisc_translator_arm:
         oriea = ea
         while ea < SegEnd(oriea):
             curline = ""
-            if isFunc(GetFlags(ea)):
-                self.out("LTORG")
+            """if isFunc(GetFlags(ea)):
+                self.out("LTORG")"""
             if isCode(GetFlags(ea)):
                 if self.isCurInData:
                     self.isCurInData = False
