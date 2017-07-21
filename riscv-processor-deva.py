@@ -1,5 +1,5 @@
-#import pydevd
-#pydevd.settrace('localhost', port=15306, stdoutToServer=True, stderrToServer=True)
+import pydevd
+pydevd.settrace('localhost', port=15306, stdoutToServer=True, stderrToServer=True,suspend=False)
 
 from idaapi import *
 from idc import *
@@ -9,6 +9,7 @@ import ctypes
 
 
 def SIGNEXT(x, b):
+    m = 1 << (b - 1)
     m = 1 << (b - 1)
     x = x & ((1 << b) - 1)
     return (x ^ m) - m
@@ -2676,6 +2677,19 @@ class openrisc_processor_t(processor_t):
         return ret
 
     def add_auto_resolved_address_comment(self, resolved_offset):
+        buf = init_output_buffer(1024)
+        r = out_name_expr(self.cmd, resolved_offset, BADADDR)
+        if not r:
+            #print hex(resolved_offset)
+            OutLong(toInt(resolved_offset) & 0xffffffff, 16)
+        term_output_buffer()
+        MakeComm(self.cmd.ea, buf)
+        nn = netnode("$ simplified_addr",0,True)
+        nn.altset(self.cmd.ea,resolved_offset & 0xffffffff)
+        #MakeComm(self.cmd.ea, "%X" % (resolved_offset))
+        pass
+
+    def add_auto_resolved_constant_comment(self, resolved_offset):
         """buf = init_output_buffer(1024)
         r = out_name_expr(self.cmd, resolved_offset, BADADDR)
         if not r:
@@ -2684,6 +2698,8 @@ class openrisc_processor_t(processor_t):
         term_output_buffer()
         MakeComm(self.cmd.ea, buf)"""
         MakeComm(self.cmd.ea, "%X" % (resolved_offset))
+        nn = netnode("$ simplified_const", 0, True)
+        nn.altset(self.cmd.ea, resolved_offset & 0xffffffff)
         pass
 
     # lui            a0, 65536
@@ -2712,7 +2728,7 @@ class openrisc_processor_t(processor_t):
                 target_offset = toInt((last_record_lui["value"] << 12) + self.cmd[1].addr)
                 if (isLoaded(target_offset)):
                     ua_add_dref(0, target_offset, dr_R)
-                self.add_auto_resolved_address_comment(target_offset)
+                self.add_auto_resolved_constant_comment(target_offset)
 
             last_record_auipc = self.get_auipc_array_object(self.cmd[1].reg)
             self.remove_lui_array_object(self.cmd[0].reg)
@@ -2734,14 +2750,14 @@ class openrisc_processor_t(processor_t):
                         target_offset = toInt((last_record_lui["value"] << 12) + self.cmd[2].value)
                         if (isLoaded(target_offset)):
                             ua_add_dref(0, target_offset, dr_R)
-                        self.add_auto_resolved_address_comment(target_offset)
+                        self.add_auto_resolved_constant_comment(target_offset)
                     elif self.cmd.itype == self.inames['jalr']:
                         if self.cmd[0].reg == 1 and self.cmd[1].reg == 1:
                             return
                         target_offset = toInt((last_record_lui["value"] << 12) + self.cmd[2].value)
                         if (isLoaded(target_offset)):
                             ua_add_cref(0, target_offset, fl_JN)
-                        self.add_auto_resolved_address_comment(target_offset)
+                        self.add_auto_resolved_constant_comment(target_offset)
 
                 # print self.last_auipc_array
                 last_record_auipc = self.get_auipc_array_object(self.cmd[1].reg)
@@ -2812,7 +2828,11 @@ class openrisc_processor_t(processor_t):
                 flow = True
                 ua_add_cref(0, cmd.ea + cmd.size, fl_F)
                 try:
-                    ua_add_cref(0, int(Comment(cmd.ea)[:-1]), fl_CN)
+                    nn = netnode("$ simplified_addr", 0, False)
+                    if nn == BADNODE:
+                        raise Exception("Resolved addr not found")
+                    target = nn.altval(self.cmd.ea)
+                    ua_add_cref(0, target, fl_CN)
                 except:
                     print "Error while making function from cmd.ea:0x%X" % (cmd.ea)
             else:
@@ -2858,6 +2878,7 @@ class openrisc_processor_t(processor_t):
                 out_symbol('&')
             r = out_name_expr(op, op.addr, BADADDR)
             if not r:
+                out_tagon(COLOR_ERROR)
                 out_tagon(COLOR_ERROR)
                 OutLong(op.addr, 16)
                 out_tagoff(COLOR_ERROR)
@@ -2905,7 +2926,7 @@ class openrisc_processor_t(processor_t):
         try:
             idp_hook_stat = "un"
             print "IDP hook: checking for hook..."
-            self.idphoo
+            self.idphook
             print "IDP hook: unhooking...."
             self.idphook.unhook()
             self.idphook = None
