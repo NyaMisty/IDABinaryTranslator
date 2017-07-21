@@ -37,17 +37,29 @@ class openrisc_translator_arm:
 
     def getRealName(self,ea):
         name = Name(ea)
-        if name == "":
+        if name != "":
+            pass
+        elif name == "" and isLoaded(ea):
             name = ("loc_%0" + str(self.xlen * 2) + "X") % (ea)
+        else:
+            name = ""
         return name
 
     def translateComment(self,ea):
-        ref = Comment(ea)
+        #ref = Comment(ea)
         target = BADADDR
-        try:
-            target = int(ref,16)
-        except:
-            pass
+        nn = netnode("$ simplified_addr", 0, False)
+        if nn != BADNODE:
+            target = nn.altval(ea)
+        if target != BADADDR and target != 0:
+            return target
+        nn = netnode("$ simplified_const", 0, False)
+        if nn != BADNODE:
+            target = nn.altval(ea)
+        if target == 0:
+            return BADADDR
+        if not isLoaded(target):
+            return BADADDR
         return target
 
     def printAsmHeader(self):
@@ -209,7 +221,7 @@ class openrisc_translator_arm:
                     continue
 
                 if self.lastLiteralPool >= 0x900:
-                    self.custom_action1()
+                    self.custom_action1(ea)
 
                 mnem = GetMnem(ea)
                 curline += self.getRealName(ea)
@@ -436,7 +448,11 @@ class openrisc_translator_arm:
     def translator_lb(self, ea, cmd):
         rd = self.premap_registers(cmd[0].reg)
         rs1 = self.premap_registers(cmd[1].reg)
-        if SIGNEXT(cmd[1].addr,32) <= -255 or SIGNEXT(cmd[1].addr,32) >= 4095:
+        target = self.translateComment(ea)
+        if target != BADADDR:
+            self.out("LDR %s, =%s" % (self.temp_register_offset, self.getRealName(target)))
+            self.out("LDRSB %s, [%s]" % (rd, self.temp_register_offset))
+        elif SIGNEXT(cmd[1].addr,32) <= -255 or SIGNEXT(cmd[1].addr,32) >= 4095:
             self.out("LDR %s, =0x%X" % (self.temp_register_offset, cmd[1].addr))
             self.out("LDRSB %s, [%s, %s]" % (rd, rs1, self.temp_register_offset))
         else:
@@ -445,7 +461,11 @@ class openrisc_translator_arm:
     def translator_lh(self, ea, cmd):
         rd = self.premap_registers(cmd[0].reg)
         rs1 = self.premap_registers(cmd[1].reg)
-        if SIGNEXT(cmd[1].addr,32) <= -255 or SIGNEXT(cmd[1].addr,32) >= 4095:
+        target = self.translateComment(ea)
+        if target != BADADDR:
+            self.out("LDR %s, =%s" % (self.temp_register_offset, self.getRealName(target)))
+            self.out("LDRSH %s, [%s]" % (rd, self.temp_register_offset))
+        elif SIGNEXT(cmd[1].addr,32) <= -255 or SIGNEXT(cmd[1].addr,32) >= 4095:
             self.out("LDR %s, =0x%X" % (self.temp_register_offset, cmd[1].addr))
             self.out("LDRSH %s, [%s, %s]" % (rd, rs1, self.temp_register_offset))
         else:
@@ -454,7 +474,11 @@ class openrisc_translator_arm:
     def translator_lw(self, ea, cmd):
         rd = self.premap_registers(cmd[0].reg)
         rs1 = self.premap_registers(cmd[1].reg)
-        if SIGNEXT(cmd[1].addr,32) <= -255 or SIGNEXT(cmd[1].addr,32) >= 4095:
+        target = self.translateComment(ea)
+        if target != BADADDR:
+            self.out("LDR %s, =%s" % (self.temp_register_offset, self.getRealName(target)))
+            self.out("LDR %s, [%s]" % (rd, self.temp_register_offset))
+        elif SIGNEXT(cmd[1].addr,32) <= -255 or SIGNEXT(cmd[1].addr,32) >= 4095:
             self.out("LDR %s, =0x%X" % (self.temp_register_offset, cmd[1].addr))
             self.out("LDR %s, [%s, %s]" % (rd, rs1, self.temp_register_offset))
         else:
@@ -463,7 +487,11 @@ class openrisc_translator_arm:
     def translator_lbu(self, ea, cmd):
         rd = self.premap_registers(cmd[0].reg)
         rs1 = self.premap_registers(cmd[1].reg)
-        if SIGNEXT(cmd[1].addr,32) <= -255 or SIGNEXT(cmd[1].addr,32) >= 4095:
+        target = self.translateComment(ea)
+        if target != BADADDR:
+            self.out("LDR %s, =%s" % (self.temp_register_offset, self.getRealName(target)))
+            self.out("LDRB %s, [%s]" % (rd, self.temp_register_offset))
+        elif SIGNEXT(cmd[1].addr,32) <= -255 or SIGNEXT(cmd[1].addr,32) >= 4095:
             self.out("LDR %s, =0x%X" % (self.temp_register_offset, cmd[1].addr))
             self.out("LDRB %s, [%s, %s]" % (rd, rs1, self.temp_register_offset))
         else:
@@ -472,7 +500,11 @@ class openrisc_translator_arm:
     def translator_lhu(self, ea, cmd):
         rd = self.premap_registers(cmd[0].reg)
         rs1 = self.premap_registers(cmd[1].reg)
-        if SIGNEXT(cmd[1].addr,32) <= -255 or SIGNEXT(cmd[1].addr,32) >= 4095:
+        target = self.translateComment(ea)
+        if target != BADADDR:
+            self.out("LDR %s, =%s" % (self.temp_register_offset, self.getRealName(target)))
+            self.out("LDRSB %s, [%s]" % (rd, self.temp_register_offset))
+        elif SIGNEXT(cmd[1].addr,32) <= -255 or SIGNEXT(cmd[1].addr,32) >= 4095:
             self.out("LDR %s, =0x%X" % (self.temp_register_offset, cmd[1].addr))
             self.out("LDRH %s, [%s, %s]" % (rd, rs1, self.temp_register_offset))
         else:
